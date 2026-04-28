@@ -1,14 +1,31 @@
-# snapdeploy.yaml
 version: '1'
 
 services:
   uptime-kuma:
     image: louislam/uptime-kuma:latest
     container_name: uptime-kuma
-    restart: always
+    restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "${PORT:-3001}:3001"
     volumes:
       - uptime-kuma-data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # Optional: Monitor Docker containers
     environment:
-      - TZ=UTC
+      - TZ=${TZ:-UTC}
+      - UPTIME_KUMA_PORT=3001
+      # Enable after first setup to prevent new signups
+      # - UPTIME_KUMA_DISABLE_USER_SIGNUP=true
+    healthcheck:
+      test: ["CMD", "node", "extra/healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - monitoring
+
+volumes:
+  uptime-kuma-data:
+
+networks:
+  monitoring:
+    driver: bridge
